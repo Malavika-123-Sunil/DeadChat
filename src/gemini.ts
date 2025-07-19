@@ -1,7 +1,9 @@
 // Gemini API utility for frontend to call backend proxy
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5001';
+
 export async function getGeminiResponse(characterPrompt: string, userMessage: string) {
-  const response = await fetch('http://localhost:5001/api/gemini', {
+  const response = await fetch(`${BACKEND_URL}/api/gemini`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ characterPrompt, userMessage })

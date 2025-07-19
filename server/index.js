@@ -6,11 +6,11 @@ const { GoogleGenAI } = require('@google/genai');
 const app = express();
 const PORT = process.env.PORT || 5001;
 
-// List of Gemini API keys
+// List of Gemini API keys - use environment variables in production
 const GEMINI_API_KEYS = [
-  'AIzaSyAVode7qKnvGoc4Hs0m144AGDf1pe68IPY',
-  'AIzaSyB9xIzeMG6TZmPfDpU2n48BELwHDQ0OL-0',
-  'AIzaSyD8vwgtBxMJubvbDPu3DRUkxG3tI4x-uwk'
+  process.env.GEMINI_API_KEY_1 || 'AIzaSyAVode7qKnvGoc4Hs0m144AGDf1pe68IPY',
+  process.env.GEMINI_API_KEY_2 || 'AIzaSyB9xIzeMG6TZmPfDpU2n48BELwHDQ0OL-0',
+  process.env.GEMINI_API_KEY_3 || 'AIzaSyD8vwgtBxMJubvbDPu3DRUkxG3tI4x-uwk'
 ];
 
 function getRandomGeminiKey() {
@@ -19,6 +19,10 @@ function getRandomGeminiKey() {
 
 app.use(cors());
 app.use(bodyParser.json());
+
+app.get('/', (req, res) => {
+  res.json({ message: 'DeadChat Gemini API Proxy is running!' });
+});
 
 app.post('/api/gemini', async (req, res) => {
   const { characterPrompt, userMessage } = req.body;
