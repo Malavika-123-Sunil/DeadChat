@@ -135,7 +135,7 @@ const ChatZone: React.FC<ChatZoneProps> = ({ onBack }) => {
 
       <div className="flex h-[calc(100vh-80px)]">
         {/* Figure Selection */}
-        <div className="w-1/3 p-6 bg-black/10 backdrop-blur-lg border-r border-yellow-500/30">
+        <div className="w-1/3 p-6 bg-black/10 backdrop-blur-lg border-r border-yellow-500/30 flex flex-col h-full">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold text-white">Choose Your Chat Partner</h2>
             <button
@@ -146,8 +146,8 @@ const ChatZone: React.FC<ChatZoneProps> = ({ onBack }) => {
               <Shuffle className="w-4 h-4" />
             </button>
           </div>
-          
-          <div className="space-y-4">
+          {/* Scrollable list with padding and footer */}
+          <div className="flex-1 overflow-y-auto space-y-4 pb-8 max-h-[calc(100vh-220px)]">
             {historicalFigures.map((figure) => (
               <div
                 key={figure.id}
@@ -163,6 +163,9 @@ const ChatZone: React.FC<ChatZoneProps> = ({ onBack }) => {
                 <p className="text-xs text-yellow-300 mt-1">{figure.personality}</p>
               </div>
             ))}
+          </div>
+          <div className="pt-4 text-center text-xs text-gray-400">
+            💡 Tip: Click the shuffle button for a random chat partner!
           </div>
         </div>
 
