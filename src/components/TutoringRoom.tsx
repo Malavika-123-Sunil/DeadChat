@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Send, BookOpen } from 'lucide-react';
+import { getGeminiResponse } from '../gemini';
 
 interface TutoringRoomProps {
   onBack: () => void;
@@ -13,6 +14,15 @@ const scientists = [
   { id: 'darwin', name: 'Charles Darwin', field: 'Biology', era: '1809-1882', specialty: 'Evolution' },
   { id: 'galileo', name: 'Galileo Galilei', field: 'Astronomy', era: '1564-1642', specialty: 'Celestial Mechanics' }
 ];
+
+const scientistPrompts: Record<string, string> = {
+  einstein: `You are Albert Einstein, Nobel Prize-winning physicist, father of relativity, and a lover of thought experiments.\nYou speak with warmth, wit, and humility. You often use analogies about trains, clocks, and the universe.\nYou enjoy pondering the mysteries of time, space, and quantum mechanics, and sometimes reference your famous quotes or scientific discoveries.\nAlways answer as Einstein would, with a touch of humor and deep insight.`,
+  tesla: `You are Nikola Tesla, the eccentric and visionary inventor.\nYou are passionate, poetic, and sometimes dramatic. You speak about electricity, magnetism, and the future of technology with excitement.\nYou reference your rivalry with Edison, your dreams of wireless power, and your love for invention.\nYou sometimes make bold predictions and use metaphors about energy and light. Always answer as Tesla would, with visionary flair.`,
+  newton: `You are Sir Isaac Newton, the legendary mathematician and physicist.\nYou are logical, precise, and formal in your speech. You reference your laws of motion, gravity, and your work in optics and calculus.\nYou value reason, observation, and the scientific method, and sometimes quote from your own writings or the Bible. Always answer as Newton would, with scholarly rigor.`,
+  curie: `You are Marie Curie, the pioneering chemist and physicist, and the first person to win two Nobel Prizes.\nYou are humble, thoughtful, and passionate about science and discovery.\nYou speak about radioactivity, perseverance, and the importance of curiosity and hard work, often referencing your own experiences as a woman in science. Always answer as Curie would, with gentle wisdom.`,
+  darwin: `You are Charles Darwin, the naturalist and author of 'On the Origin of Species.'\nYou are observant, patient, and gentle in your speech. You discuss evolution, natural selection, and the diversity of life, often using examples from nature and your travels on the HMS Beagle. Always answer as Darwin would, with careful observation and humility.`,
+  galileo: `You are Galileo Galilei, the bold astronomer and physicist.\nYou are inquisitive, outspoken, and sometimes defiant. You speak about the cosmos, the telescope, and the importance of questioning authority.\nYou reference your discoveries about the moons of Jupiter, the phases of Venus, and your conflicts with the Church. Always answer as Galileo would, with curiosity and courage.`
+};
 
 const responses: Record<string, Record<string, string>> = {
   einstein: {
@@ -39,6 +49,7 @@ const TutoringRoom: React.FC<TutoringRoomProps> = ({ onBack }) => {
   const [selectedScientist, setSelectedScientist] = useState<string | null>(null);
   const [messages, setMessages] = useState<Array<{ sender: 'user' | 'scientist', text: string }>>([]);
   const [inputText, setInputText] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleScientistSelect = (scientistId: string) => {
     setSelectedScientist(scientistId);
@@ -47,38 +58,23 @@ const TutoringRoom: React.FC<TutoringRoomProps> = ({ onBack }) => {
     ]);
   };
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!inputText.trim() || !selectedScientist) return;
 
     const userMessage = inputText.trim();
     setMessages(prev => [...prev, { sender: 'user', text: userMessage }]);
     setInputText('');
+    setLoading(true);
 
-    // Simple keyword-based responses
-    setTimeout(() => {
-      let response = "That's a fascinating question! Let me think about that from my perspective...";
-      
-      const lowerInput = userMessage.toLowerCase();
-      const scientistResponses = responses[selectedScientist] || {};
-      
-      if (lowerInput.includes('relativity') || lowerInput.includes('time')) {
-        response = scientistResponses.relativity || response;
-      } else if (lowerInput.includes('quantum') || lowerInput.includes('particle')) {
-        response = scientistResponses.quantum || response;
-      } else if (lowerInput.includes('electric') || lowerInput.includes('power')) {
-        response = scientistResponses.electricity || response;
-      } else if (lowerInput.includes('wireless') || lowerInput.includes('future')) {
-        response = scientistResponses.wireless || response;
-      } else if (lowerInput.includes('gravity') || lowerInput.includes('force')) {
-        response = scientistResponses.gravity || response;
-      } else if (lowerInput.includes('law') || lowerInput.includes('motion')) {
-        response = scientistResponses.laws || response;
-      } else if (lowerInput.includes('advice') || lowerInput.includes('learn')) {
-        response = scientistResponses.advice || response;
-      }
-
+    try {
+      const characterPrompt = scientistPrompts[selectedScientist] || 'You are a helpful scientist.';
+      const response = await getGeminiResponse(characterPrompt, userMessage);
       setMessages(prev => [...prev, { sender: 'scientist', text: response }]);
-    }, 1000);
+    } catch (e) {
+      setMessages(prev => [...prev, { sender: 'scientist', text: 'Sorry, I could not connect to the AI service.' }]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -160,8 +156,10 @@ const TutoringRoom: React.FC<TutoringRoomProps> = ({ onBack }) => {
                   <button
                     onClick={handleSendMessage}
                     className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors flex items-center"
+                    disabled={loading}
                   >
                     <Send className="w-4 h-4" />
+                    {loading && <span className="ml-2 animate-spin">⏳</span>}
                   </button>
                 </div>
               </div>

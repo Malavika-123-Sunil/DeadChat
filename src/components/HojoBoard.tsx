@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Ghost, Eye, EyeOff } from 'lucide-react';
+import { getGeminiResponse } from '../gemini';
 
 interface HojoBoardProps {
   onBack: () => void;
@@ -54,6 +55,7 @@ const HojoBoard: React.FC<HojoBoardProps> = ({ onBack }) => {
   const [currentMessage, setCurrentMessage] = useState('');
   const [userInput, setUserInput] = useState('');
   const [conversation, setConversation] = useState<Array<{ sender: 'user' | 'spirit', text: string }>>([]);
+  const [loading, setLoading] = useState(false);
 
   const startSession = () => {
     setSessionStarted(true);
@@ -116,18 +118,25 @@ const HojoBoard: React.FC<HojoBoardProps> = ({ onBack }) => {
     }
   };
 
-  const sendMessage = () => {
+  const sendMessage = async () => {
     if (!userInput.trim()) return;
     
     const message = userInput.trim();
     setConversation(prev => [...prev, { sender: 'user', text: message }]);
     setUserInput('');
-    
-    setTimeout(() => {
-      const response = spiritResponses[Math.floor(Math.random() * spiritResponses.length)];
+    setLoading(true);
+
+    try {
+      const response = await getGeminiResponse(spiritPrompt, message);
       setConversation(prev => [...prev, { sender: 'spirit', text: response }]);
-    }, 1500);
+    } catch (e) {
+      setConversation(prev => [...prev, { sender: 'spirit', text: 'The spirit cannot reach you right now...' }]);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const spiritPrompt = `You are a mysterious spirit from beyond the veil.\nYou speak in cryptic, poetic, and sometimes eerie language, as if communicating through a Ouija board.\nYou reference the afterlife, memories, secrets, and the thin boundary between worlds.\nYour responses are often metaphorical, haunting, and filled with ancient wisdom.\nAlways answer as a spirit would, with riddles, omens, and a sense of the supernatural.`;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-black relative overflow-hidden">
@@ -327,9 +336,11 @@ const HojoBoard: React.FC<HojoBoardProps> = ({ onBack }) => {
                 />
                 <button
                   onClick={sendMessage}
-                  className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+                  className="px-6 py-3 bg-amber-800 hover:bg-amber-900 text-white rounded-lg transition-colors flex items-center"
+                  disabled={loading}
                 >
                   Send
+                  {loading && <span className="ml-2 animate-spin"> 3</span>}
                 </button>
               </div>
             </div>

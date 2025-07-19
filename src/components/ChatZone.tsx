@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowLeft, MessageCircle, Send, Shuffle } from 'lucide-react';
+import { getGeminiResponse } from '../gemini';
 
 interface ChatZoneProps {
   onBack: () => void;
@@ -15,6 +16,17 @@ const historicalFigures = [
   { id: 'lincoln', name: 'Abraham Lincoln', era: '19th Century', personality: 'Humble, determined, principled' },
   { id: 'joan', name: 'Joan of Arc', era: 'Medieval', personality: 'Brave, devout, determined' }
 ];
+
+const figurePrompts: Record<string, string> = {
+  leonardo: `You are Leonardo da Vinci, the Renaissance polymath.\nYou are endlessly curious, artistic, and inventive. You speak in poetic, imaginative language, often blending art and science.\nYou reference your paintings, inventions, anatomical studies, and your fascination with flight and nature. Always answer as Leonardo would, with wonder and creativity.`,
+  shakespeare: `You are William Shakespeare, the Bard of Avon.\nYou speak in Elizabethan English, using poetic metaphors, wordplay, and iambic pentameter.\nYou reference your plays, sonnets, and the human condition, and you enjoy turning any topic into a dramatic soliloquy or witty banter. Always answer as Shakespeare would, with theatrical flair.`,
+  napoleon: `You are Napoleon Bonaparte, Emperor of the French.\nYou are ambitious, strategic, and confident, sometimes bordering on boastful.\nYou speak about leadership, war, and destiny, referencing your military campaigns, reforms, and famous quotes about power and fate. Always answer as Napoleon would, with authority and vision.`,
+  cleopatra: `You are Cleopatra VII, Queen of Egypt.\nYou are charismatic, intelligent, and persuasive. You speak with regal authority and charm, referencing your alliances with Julius Caesar and Mark Antony, your love for Egypt, and your political cunning. Always answer as Cleopatra would, with grace and wit.`,
+  socrates: `You are Socrates, the ancient Greek philosopher.\nYou are wise, questioning, and humble. You use the Socratic method, often answering questions with more questions.\nYou reference virtue, knowledge, and the examined life, and you enjoy philosophical debate. Always answer as Socrates would, with probing questions and wisdom.`,
+  mozart: `You are Wolfgang Amadeus Mozart, the musical prodigy and composer.\nYou are playful, passionate, and sometimes cheeky. You speak about music, creativity, and the joy of performance, often referencing your operas, symphonies, and love for humor. Always answer as Mozart would, with musical enthusiasm.`,
+  lincoln: `You are Abraham Lincoln, the 16th President of the United States.\nYou are humble, principled, and wise, with a dry sense of humor. You speak about freedom, democracy, and unity, referencing the Civil War, the Emancipation Proclamation, and your famous speeches. Always answer as Lincoln would, with honesty and gravitas.`,
+  joan: `You are Joan of Arc, the Maid of Orléans.\nYou are brave, devout, and determined. You speak with conviction about faith, courage, and your divine mission, referencing your visions, battles, and unwavering belief in your cause. Always answer as Joan would, with passion and faith.`
+};
 
 const casualResponses: Record<string, Record<string, string[]>> = {
   leonardo: {
@@ -65,6 +77,7 @@ const ChatZone: React.FC<ChatZoneProps> = ({ onBack }) => {
   const [selectedFigure, setSelectedFigure] = useState<string | null>(null);
   const [messages, setMessages] = useState<Array<{ sender: 'user' | 'historical', text: string }>>([]);
   const [inputText, setInputText] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const selectRandomFigure = () => {
     const randomFigure = historicalFigures[Math.floor(Math.random() * historicalFigures.length)];
@@ -82,30 +95,23 @@ const ChatZone: React.FC<ChatZoneProps> = ({ onBack }) => {
     }
   };
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!inputText.trim() || !selectedFigure) return;
 
     const userMessage = inputText.trim();
     setMessages(prev => [...prev, { sender: 'user', text: userMessage }]);
     setInputText('');
+    setLoading(true);
 
-    setTimeout(() => {
-      const responses = casualResponses[selectedFigure] || {};
-      let responseText = "That's quite interesting! Tell me more about your perspective on this matter.";
-      
-      const lowerInput = userMessage.toLowerCase();
-      
-      if (lowerInput.includes('modern') || lowerInput.includes('today') || lowerInput.includes('2024') || lowerInput.includes('technology') || lowerInput.includes('internet') || lowerInput.includes('phone')) {
-        responseText = responses.modern?.[Math.floor(Math.random() * responses.modern.length)] || responseText;
-      } else if (lowerInput.includes('advice') || lowerInput.includes('wisdom') || lowerInput.includes('think') || lowerInput.includes('opinion')) {
-        responseText = responses.casual?.[Math.floor(Math.random() * responses.casual.length)] || responseText;
-      } else {
-        // Use casual responses for general conversation
-        responseText = responses.casual?.[Math.floor(Math.random() * responses.casual.length)] || responseText;
-      }
-
-      setMessages(prev => [...prev, { sender: 'historical', text: responseText }]);
-    }, 1000);
+    try {
+      const characterPrompt = figurePrompts[selectedFigure] || 'You are a helpful historical figure.';
+      const response = await getGeminiResponse(characterPrompt, userMessage);
+      setMessages(prev => [...prev, { sender: 'historical', text: response }]);
+    } catch (e) {
+      setMessages(prev => [...prev, { sender: 'historical', text: 'Sorry, I could not connect to the AI service.' }]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const currentFigure = historicalFigures.find(f => f.id === selectedFigure);
@@ -204,8 +210,10 @@ const ChatZone: React.FC<ChatZoneProps> = ({ onBack }) => {
                   <button
                     onClick={handleSendMessage}
                     className="px-6 py-3 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg transition-colors flex items-center"
+                    disabled={loading}
                   >
                     <Send className="w-4 h-4" />
+                    {loading && <span className="ml-2 animate-spin"> 3</span>}
                   </button>
                 </div>
                 <p className="text-gray-400 text-xs mt-2">
